@@ -4,8 +4,10 @@ use std::{error::Error, fs};
 // dyn -> dynamic
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let content = fs::read_to_string(config.filename)?;
+    for line in search(&config.query, &content) {
+        println!("{}", line);
+    }
 
-    println!("text is:\n{}", content);
     Ok(())
 }
 
@@ -25,5 +27,34 @@ impl Config {
         let filename = args[2].clone();
 
         Ok(Config { query, filename })
+    }
+}
+
+// 切片引用数据有效时切片本身得有效，这样可以保持生命周期相同
+pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
+    let mut res: Vec<&str> = vec![];
+
+    for line in content.lines() {
+        if line.contains(query) {
+            res.push(line)
+        }
+    }
+
+    res
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_result() {
+        let query = "duct";
+        let content = "\
+Rust:
+safe, fast, productive.
+Pick Three";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, content));
     }
 }
