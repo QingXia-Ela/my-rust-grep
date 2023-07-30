@@ -24,14 +24,20 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
+    pub fn new(mut args: std::env::Args) -> Result<Config, &'static str> {
         if args.len() < 3 {
-            // panic!("Not enough arguments!");
             return Err("Not enough arguments!");
         }
+        args.next();
         // 引用时就需要管理生命周期
-        let query = args[1].clone();
-        let filename = args[2].clone();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name"),
+        };
         let case_sensitive = env::var("CASE_INSENESITIVE").is_err();
 
         Ok(Config {
@@ -44,28 +50,17 @@ impl Config {
 
 // 切片引用数据有效时切片本身得有效，这样可以保持生命周期相同
 pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
-    let mut res: Vec<&str> = vec![];
-
-    for line in content.lines() {
-        if line.contains(query) {
-            res.push(line)
-        }
-    }
-
-    res
+    content
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insenesitive<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
-    let mut res: Vec<&str> = vec![];
-    let query = query.to_lowercase();
-
-    for line in content.lines() {
-        if line.to_lowercase().contains(query.as_str()) {
-            res.push(line)
-        }
-    }
-
-    res
+    content
+        .lines()
+        .filter(|line| line.to_lowercase().contains(query))
+        .collect()
 }
 
 #[cfg(test)]
